@@ -57,7 +57,11 @@ matchManyAnywhere :: Parser (Parser String)
 matchManyAnywhere = skipManyTill anySingle <$> matchMany
 
 grep' :: Parser (Parser String)
-grep' = matchManyAnywhere
+grep' = do
+    maybeFromStart <- optional $ char '^'
+    case maybeFromStart of
+        Nothing -> matchManyAnywhere
+        Just _ -> matchMany
 
 matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
