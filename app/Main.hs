@@ -50,9 +50,18 @@ gNegCharGroup = do
 grep :: Parser (Parser Char)
 grep = choice [try gPositiveCharGroup, gNegCharGroup, try gDigit, gAlphaNum, gLit]
 
-matchPattern :: String -> String -> Either ParsingError Char
+matchMany :: Parser (Parser String)
+matchMany = sequence <$> some grep
+
+matchManyAnywhere :: Parser (Parser String)
+matchManyAnywhere = skipManyTill anySingle <$> matchMany
+
+grep' :: Parser (Parser String)
+grep' = matchManyAnywhere
+
+matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
-    patternParser <- parse grep "" pattern
+    patternParser <- parse grep' "" pattern
     parse patternParser "" input
 
 main :: IO ()
