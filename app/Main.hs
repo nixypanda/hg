@@ -12,7 +12,7 @@ type Parser = Parsec Void String
 type ParsingError = ParseErrorBundle String Void
 
 reserved :: [Char]
-reserved = ['\\', '[', ']']
+reserved = ['\\', '[', ']', '^']
 
 gLit :: Parser (Parser Char)
 gLit = do
@@ -39,8 +39,16 @@ gPositiveCharGroup = do
     _ <- char ']'
     pure $ satisfy (`elem` chars)
 
+gNegCharGroup :: Parser (Parser Char)
+gNegCharGroup = do
+    _ <- char '['
+    _ <- char '^'
+    chars <- many (satisfy isAlpha)
+    _ <- char ']'
+    pure $ satisfy (`notElem` chars)
+
 grep :: Parser (Parser Char)
-grep = choice [gPositiveCharGroup, try gDigit, gAlphaNum, gLit]
+grep = choice [try gPositiveCharGroup, gNegCharGroup, try gDigit, gAlphaNum, gLit]
 
 matchPattern :: String -> String -> Either ParsingError Char
 matchPattern pattern input = do
