@@ -1,28 +1,48 @@
 module Main where
 
-import System.Environment
-import System.Exit
+import Control.Monad (unless)
+import Data.Void (Void)
+import System.Environment (getArgs)
+import System.Exit (exitFailure, exitSuccess)
+import Text.Megaparsec
+import Text.Megaparsec.Char
 
-matchPattern :: String -> String -> Bool
+type Parser = Parsec Void String
+type ParsingError = ParseErrorBundle String Void
+
+reserved :: [Char]
+reserved = ['\\']
+
+gLit :: Parser (Parser Char)
+gLit = do
+    c <- escaped <|> noneOf reserved
+    pure $ char c
+  where
+    escaped :: Parser Char
+    escaped = char '\\' *> oneOf reserved
+
+grep :: Parser (Parser Char)
+grep = gLit
+
+matchPattern :: String -> String -> Either ParsingError Char
 matchPattern pattern input = do
-  if length pattern == 1
-    then head pattern `elem` input
-    else error $ "Unhandled pattern: " ++ pattern
+    patternParser <- parse grep "" pattern
+    parse patternParser "" input
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let pattern = args !! 1
-  input_line <- getLine
+    args <- getArgs
+    let pattern = args !! 1
+    input_line <- getLine
 
-  -- You can use print statements as follows for debugging, they'll be visible when running tests.
-  putStrLn "Logs from your program will appear here"
+    unless (head args == "-E") $ do
+        putStrLn "Expected first argument to be '-E'"
+        exitFailure
+    case matchPattern pattern input_line of
+        Right result -> do
+            print result
+            exitSuccess
+        Left err -> do
+            print err
+            exitFailure
 
-  -- Uncomment this block to pass stage 1
-  -- if head args /= "-E"
-  --   then do
-  --     putStrLn "Expected first argument to be '-E'"
-  --     exitFailure
-  --   else do if matchPattern pattern input_line
-  --             then exitSuccess
-  --             else exitFailure
