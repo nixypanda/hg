@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Monad (unless)
-import Data.Char (isAlphaNum, isDigit)
+import Data.Char (isAlpha, isAlphaNum, isDigit)
 import Data.Void (Void)
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
@@ -12,7 +12,7 @@ type Parser = Parsec Void String
 type ParsingError = ParseErrorBundle String Void
 
 reserved :: [Char]
-reserved = ['\\']
+reserved = ['\\', '[', ']']
 
 gLit :: Parser (Parser Char)
 gLit = do
@@ -32,8 +32,15 @@ gAlphaNum = do
     _ <- string "\\w"
     pure $ satisfy isAlphaNum
 
+gPositiveCharGroup :: Parser (Parser Char)
+gPositiveCharGroup = do
+    _ <- char '['
+    chars <- many (satisfy isAlpha)
+    _ <- char ']'
+    pure $ satisfy (`elem` chars)
+
 grep :: Parser (Parser Char)
-grep = choice [try gDigit, gAlphaNum, gLit]
+grep = choice [gPositiveCharGroup, try gDigit, gAlphaNum, gLit]
 
 matchPattern :: String -> String -> Either ParsingError Char
 matchPattern pattern input = do
