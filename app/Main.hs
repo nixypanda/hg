@@ -47,11 +47,18 @@ gNegCharGroup = do
     _ <- char ']'
     pure $ satisfy (`notElem` chars)
 
-grep :: Parser (Parser Char)
-grep = choice [try gPositiveCharGroup, gNegCharGroup, try gDigit, gAlphaNum, gLit]
+grep :: Parser (Parser String)
+grep =
+    choice
+        [ try (gModifiers gPositiveCharGroup)
+        , gModifiers gNegCharGroup
+        , try (gModifiers gDigit)
+        , try (gModifiers gAlphaNum)
+        , gModifiers gLit
+        ]
 
 matchMany :: Parser (Parser String)
-matchMany = sequence <$> some grep
+matchMany = mconcat <$> some grep
 
 matchManyAnywhere :: Parser (Parser String)
 matchManyAnywhere = skipManyTill anySingle <$> matchMany
@@ -66,6 +73,17 @@ grep' = do
     case maybeEnd of
         Nothing -> pure p
         Just _ -> pure (p <* eof)
+
+gOneOrMore :: Parser (Parser Char) -> Parser (Parser String)
+gOneOrMore pp = do
+    p <- pp
+    maybePlus <- optional $ char '+'
+    case maybePlus of
+        Nothing -> pure ((: []) <$> p)
+        Just _ -> pure $ some p
+
+gModifiers :: Parser (Parser Char) -> Parser (Parser String)
+gModifiers = gOneOrMore
 
 matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
