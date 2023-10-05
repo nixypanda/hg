@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad (unless)
 import Data.Char (isAlpha, isAlphaNum, isDigit)
+import Data.Maybe (maybeToList)
 import Data.Void (Void)
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
@@ -12,7 +13,7 @@ type Parser = Parsec Void String
 type ParsingError = ParseErrorBundle String Void
 
 reserved :: [Char]
-reserved = ['\\', '[', ']', '^', '$']
+reserved = ['\\', '[', ']', '^', '$', '+', '?']
 
 gLit :: Parser (Parser Char)
 gLit = do
@@ -83,7 +84,16 @@ gOneOrMore pp = do
         Just _ -> pure $ some p
 
 gModifiers :: Parser (Parser Char) -> Parser (Parser String)
-gModifiers = gOneOrMore
+gModifiers pp = gOneOrNone pp <|> gOneOrMore pp
+
+gOneOrNone :: Parser (Parser Char) -> Parser (Parser String)
+gOneOrNone pp = do
+    p <- pp
+    maybeOptional <- optional $ char '?'
+    case maybeOptional of
+        Nothing -> pure ((: []) <$> p)
+        Just _ -> pure $ maybeToList <$> optional p
+
 
 matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
