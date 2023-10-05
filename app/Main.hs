@@ -13,7 +13,7 @@ type Parser = Parsec Void String
 type ParsingError = ParseErrorBundle String Void
 
 reserved :: [Char]
-reserved = ['\\', '[', ']', '^', '$', '+', '?']
+reserved = ['\\', '[', ']', '^', '$', '+', '?', '.']
 
 gLit :: Parser (Parser Char)
 gLit = do
@@ -55,6 +55,7 @@ grep =
         , gModifiers gNegCharGroup
         , try (gModifiers gDigit)
         , try (gModifiers gAlphaNum)
+        , gModifiers gWildCard
         , gModifiers gLit
         ]
 
@@ -94,6 +95,10 @@ gOneOrNone pp = do
         Nothing -> pure ((: []) <$> p)
         Just _ -> pure $ maybeToList <$> optional p
 
+gWildCard :: Parser (Parser Char)
+gWildCard = do
+    _ <- char '.'
+    pure $ noneOf reserved
 
 matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
