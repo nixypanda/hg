@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad (unless)
+import Data.Char (isDigit)
 import Data.Void (Void)
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
@@ -21,8 +22,13 @@ gLit = do
     escaped :: Parser Char
     escaped = char '\\' *> oneOf reserved
 
+gDigit :: Parser (Parser Char)
+gDigit = do
+    _ <- string "\\d"
+    pure $ satisfy isDigit
+
 grep :: Parser (Parser Char)
-grep = gLit
+grep = choice [gDigit, gLit]
 
 matchPattern :: String -> String -> Either ParsingError Char
 matchPattern pattern input = do
