@@ -12,7 +12,7 @@ type Parser = Parsec Void String
 type ParsingError = ParseErrorBundle String Void
 
 reserved :: [Char]
-reserved = ['\\', '[', ']', '^']
+reserved = ['\\', '[', ']', '^', '$']
 
 gLit :: Parser (Parser Char)
 gLit = do
@@ -59,9 +59,13 @@ matchManyAnywhere = skipManyTill anySingle <$> matchMany
 grep' :: Parser (Parser String)
 grep' = do
     maybeFromStart <- optional $ char '^'
-    case maybeFromStart of
+    p <- case maybeFromStart of
         Nothing -> matchManyAnywhere
         Just _ -> matchMany
+    maybeEnd <- optional $ char '$'
+    case maybeEnd of
+        Nothing -> pure p
+        Just _ -> pure (p <* eof)
 
 matchPattern :: String -> String -> Either ParsingError String
 matchPattern pattern input = do
